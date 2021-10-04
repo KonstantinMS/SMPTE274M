@@ -20,8 +20,8 @@
 
 module SMPTE274(
   //  VERSION 1080p @30 
-  input 	        i_CLK_74m25,    	//  serial clock 
-  input 	        i_RST,          	//  hight for reset
+  input 	      i_CLK_74m25,    	//  serial clock 
+  input 	      i_RST,          	//  hight for reset
   input           i_EN,             //  system i_ENable
   //  Y or Cb Cr data                    
   input  [ 9 : 0] i_data_Y,         //  data in
