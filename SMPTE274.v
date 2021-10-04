@@ -20,8 +20,8 @@
 
 module SMPTE274(
   //  VERSION 1080p @30 
-  input 	      i_CLK_74m25,    	//  serial clock 
-  input 	      i_RST,          	//  hight for reset
+  input 	        i_CLK_74m25,    	//  serial clock 
+  input 	        i_RST,          	//  hight for reset
   input           i_EN,             //  system i_ENable
   //  Y or Cb Cr data                    
   input  [ 9 : 0] i_data_Y,         //  data in
@@ -29,11 +29,11 @@ module SMPTE274(
   
   output [11 : 0] PIX_CNT_o,        //  pix count
   output [10 : 0] LINE_CNT_o,       //  Line count | max value = 1125
-  //  output          F_o,            //  odd/evi_EN field indicator
+  //  output          F_o,          //  odd/evi_EN field indicator
   output          VSYNC_o,          //  vertical synchronization
   output          HSYNC_o,          //  horizontal synchronization 
   output          DATA_RQ_o,        //  active area 
-  //  output          SDI_o,          //  SDI serial output 
+  //  output          SDI_o,        //  SDI serial output 
   output [ 9 : 0] Y_data_o,
   output [ 9 : 0] C_data_o          //  parallel output     
   );
