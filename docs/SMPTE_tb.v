@@ -20,7 +20,7 @@ reg  [ 9 : 0 ]    captured_data;
 `define NULL      0 
 
 
-SMPTE274 Y_data(
+SMPTE274 data(
   .CLK_74M                ( clk        ),
   .RST                    ( RST        ),
   .EN                     ( EN         ),
@@ -62,12 +62,12 @@ end
 always @(posedge clk) 
 begin
   if  (DATA_RQ_o)
-      scan_file = $fscanf(data_file, "%d\n", captured_data);
+    scan_file = $fscanf(data_file, "%d\n", captured_data);
   else
-      captured_data <= 10'h000;     
+    captured_data <= 10'h000;     
   if (!$feof(data_file)) 
   begin
-      i_data_Y <= captured_data;
+    i_data_Y <= captured_data;
   end
 end
 

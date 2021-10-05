@@ -16,7 +16,7 @@ wire              DATA_RQ_o;
 
 integer           data_file    ; // file handler
 integer           scan_file    ; // file handler
-reg  [ 9 : 0]     captured_data;
+reg  [ 9 : 0 ]    captured_data;
 `define NULL      0 
 
 
