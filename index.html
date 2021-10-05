@@ -61,7 +61,7 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#crc">Вставка CRC</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#_5">Ресурсы</a>
+    <li class="toctree-l2"><a class="reference internal" href="#_5">Затрачиваемые ресурсы</a>
     </li>
     </ul>
                     </li>
@@ -77,6 +77,10 @@
                     <li class="toctree-l1"><a class="reference internal" href="SMPTE274.v">Скачать код модуля</a>
                     </li>
                     <li class="toctree-l1"><a class="reference internal" href="crcSMPTE.v">Скачать код CRC</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="SMPTE_tb.v">Тестбенч</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="out.dat">Строка данных (красная заливка)</a>
                     </li>
                 </ul>
                 <ul>
@@ -143,14 +147,14 @@
 <li><code>Y_data_o</code> — 10 биное слово согласно протоколу Y компоненты.</li>
 <li><code>C_data_o</code> — 10 биное слово согласно протоколу C компоненты (Cr / Cb).</li>
 </ul>
-<p>Скорость данных линий Y_data_o/ C_data_o повторяет скорость тактирования CLK_74m25.</p>
+<p>Скорость данных линий Y_data_o / C_data_o повторяет скорость тактирования CLK_74m25.</p>
 <h2 id="data_o">Результат data_o</h2>
 <p>Гененрирует данные формата ниже:
 <img alt="данные" src="data_format.png" title="Вид в Vivado" /></p>
 <p><em>Television horizontal line data</em></p>
 <h2 id="crc">Вставка CRC</h2>
 <p>Расчет CRC осущевтвляется через модуль crcSMPTE.v, сгенерированный на <a href="https://bues.ch/cms/hacking/crcgen/">сайте</a>. Полином x^18 + x^5 + x^4 + 1.</p>
-<h2 id="_5">Ресурсы</h2>
+<h2 id="_5">Затрачиваемые ресурсы</h2>
 <p>Vivado</p>
 <table>
 <thead>
@@ -224,5 +228,5 @@
 
 <!--
 MkDocs version : 1.2.2
-Build Date UTC : 2021-10-04 12:22:03.232812+00:00
+Build Date UTC : 2021-10-05 04:19:45.258554+00:00
 -->
