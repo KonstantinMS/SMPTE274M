@@ -1,16 +1,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 // Engineer:    Konstantin
-// 
-// Design Name: 
 // Module Name: SMPTE274
-// Project Name: HD-SDI
-// Target Devices: 
-// Tool Versions: 
-// Description: 
+// Description: HD-SDI 1920*1080@30p
 // 
 // Dependencies: crc calculated in crcSMPTE.v
-// Additional Comments: Tested in simulation only
-// Encoding: Windows-1251 
+// Additional Comments: Tested on real hardware.
+// Encoding: UTF-8 
 //////////////////////////////////////////////////////////////////////////////////
 `timescale 1ns / 100ps
 
@@ -21,7 +16,7 @@
 module SMPTE274(
   //  VERSION 1080p @30 
   input 	      i_CLK_74m25,    	//  serial clock 
-  input 	      i_RST,          	//  hight for reset
+  input 	      i_RST_N,          //  low for reset
   input           i_EN,             //  system i_ENable
   //  Y or Cb Cr data                    
   input  [ 9 : 0] i_data_Y,         //  data in
@@ -33,7 +28,7 @@ module SMPTE274(
   output          VSYNC_o,          //  vertical synchronization
   output          HSYNC_o,          //  horizontal synchronization 
   output          DATA_RQ_o,        //  active area 
-  //  output          SDI_o,        //  SDI serial output 
+  //  output          SDI_o,        //  SDI serial output         
   output [ 9 : 0] Y_data_o,
   output [ 9 : 0] C_data_o          //  parallel output     
   );
@@ -41,6 +36,7 @@ module SMPTE274(
 
 reg  [11 : 0] pix_cnt;              //  2200 per line
 reg  [10 : 0] line_cnt;             //  1125 per frame
+wire [10 : 0] line_cnt_st274;       //  line_cnt + 1, as should be in SMPTE-274 stream
 
 wire [11 : 0] pix_cnt_end;          //  pixel end signal 1-2200
 wire [10 : 0] line_cnt_end;         //  line end signal (frame) 1-1125
@@ -76,13 +72,15 @@ reg  [ 1 : 0] state;
 
 reg           vsync;
 reg           hsync;
+
+assign line_cnt_st274 = line_cnt + 1;
  
 /////////////////////////////////////////////////////////////////  state machine  
 //  state machine  
 /////////////////////////////////////////////////////////////////    
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		state <= S_IDLE; 
 	else 
 		case (state) 
@@ -126,6 +124,7 @@ assign pix_LN1  = pix_cnt == `pixel_EAV0 + 5;      // do not change
 assign pix_CRC0 = pix_cnt == `pixel_EAV0 + 6;      // do not change
 assign pix_CRC1 = pix_cnt == `pixel_EAV0 + 7;      // do not change
 assign pix_BLANK = (pix_cnt > `pixel_EAV0 + 7) && (pix_cnt < `pixel_SAV0);  
+assign pix_CRC = (pix_cnt >= 1) && (pix_cnt < `pixel_EAV0 + 8);  // do not change, +1 because we calc over registered *output* data 
 
 assign pix_SAV0 = pix_cnt == `pixel_SAV0;
 assign pix_SAV1 = pix_cnt == `pixel_SAV0 + 1;      // do not change
@@ -140,9 +139,9 @@ assign pix_cnt_end = pix_cnt == `LINE_LENGTH;
 //-----------------------------------------------  pix_cnt 
 //  pix_cnt
 //-----------------------------------------------  
-always @(negedge i_CLK_74m25 or posedge i_RST) 
+always @(negedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		pix_cnt <= 0; 
 	else 
 		if (pix_cnt_end)
@@ -154,9 +153,9 @@ end
 //-----------------------------------------------  line_cnt 
 //  line_cnt  
 //-----------------------------------------------
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		line_cnt <= 0; 
 	else 
 		if (line_cnt_end) //  return to 0 
@@ -166,9 +165,9 @@ begin
 end 
 
 //-----------------------------------------------  i_EN_d 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		i_EN_d <= 0; 
 	else 
 		i_EN_d <= i_EN;	 				
@@ -176,22 +175,22 @@ end
 
  
 //-----------------------------------------------  F 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		F <= 0; 
 	else 
     //  for progressive scan always 0
-    F <= 0;
+        F <= 0;
 
 end
 
 //-----------------------------------------------  line_data_rq 
 //
 //-----------------------------------------------   
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		line_data_rq <= 0; 
 	else 
 		if (pix_cnt < `pixel_EAV0 && state == S_FRAME)  
@@ -202,45 +201,42 @@ end
 
  
 //-----------------------------------------------  V  
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		V <= 0; 
 	else 
 		V <= ~(state == S_FRAME);    // hight when blanking (low when frame)				
 end
 
 //-----------------------------------------------  H  
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		H <= 0; 
 	else 
 		if ((pix_cnt < 1920) | (pix_cnt > 2196))       // when data H = 0	
 		  H <= 0;
 		else
-		  H <= 1;
-				
+		  H <= 1;		
 end
 
 //-----------------------------------------------  vsync  
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		vsync <= 0; 
 	else 
         if (V) 
             vsync <= 1;
         else
             vsync <= 0;
-	
-
 end
 
 //-----------------------------------------------  hsync  
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		hsync <= 0; 
 	else 
 		if (line_EAV3 & ~H) 
@@ -253,9 +249,9 @@ end
 
 // breaking the start / stop word into 4 parts
 //-----------------------------------------------  line_EAV0 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		line_EAV0 <= 0; 
 	else     
 	   if (state != S_IDLE && (pix_EAV0 || pix_SAV0)) 
@@ -264,9 +260,9 @@ begin
 	       line_EAV0 <= 1'b0; 				
 end
 //-----------------------------------------------  line_EAV1 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_EAV1 <= 0; 
 	else
         if (pix_EAV1 || pix_SAV1) 
@@ -275,9 +271,9 @@ begin
 			line_EAV1 <= 1'b0; 				
 end
 //-----------------------------------------------  line_EAV2 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_EAV2 <= 0; 
 	else
         if (pix_EAV2 || pix_SAV2) 
@@ -286,9 +282,9 @@ begin
 			line_EAV2 <= 1'b0; 				
 end
 //-----------------------------------------------  line_EAV3 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_EAV3 <= 0; 
 	else
         if (pix_EAV3 || pix_SAV3) 
@@ -298,9 +294,9 @@ begin
 end
 
 //-----------------------------------------------  line_LN0
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_LN0 <= 0; 
 	else	
         if (pix_LN0) 
@@ -309,9 +305,9 @@ begin
 			line_LN0 <= 1'b0; 				
 end
 //-----------------------------------------------  line_LN1
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_LN1 <= 0; 
 	else
         if (pix_LN1) 
@@ -320,9 +316,9 @@ begin
 			line_LN1 <= 1'b0; 				
 end
 //-----------------------------------------------  line_CRC0
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_CRC0 <= 0; 
 	else	
         if (pix_CRC0) 
@@ -332,9 +328,9 @@ begin
 end
 
 //-----------------------------------------------  line_CRC1
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
         line_CRC1 <= 0; 
 	else
         if (pix_CRC1) 
@@ -344,9 +340,9 @@ begin
 end
 
 //-----------------------------------------------  line_BLANK  
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 		line_BLANK <= 0; 
 	else 
 		if (pix_BLANK) 
@@ -358,7 +354,8 @@ end
 //************* CRC CODE *************
 reg  [17:0] crcIn_Y, crcIn_C;
 wire [17:0] crcOut_Y, crcOut_C;
-reg  [9:0]  CRC0_Y, CRC1_Y, CRC0_C, CRC1_C;   
+reg  [9:0]  CRC1_Y, CRC1_C;  
+wire [9:0]  CRC0_Y, CRC0_C;    
 crcSMPTE CRC_Y (
     .crcIn        (crcIn_Y),
     .data         (pdata_Y),
@@ -371,47 +368,39 @@ crcSMPTE CRC_C (
     .crcOut       (crcOut_C)
 );
 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin
-    if (i_RST)
+    if (i_RST_N == 0)
         begin
            crcIn_Y <= 10'h000;
-           CRC0_Y  <= 10'h000;
-           CRC1_Y  <= 10'h000;
-           CRC0_C  <= 10'h000;
-           CRC1_C  <= 10'h000;
+           crcIn_C <= 10'h000;
         end	    
 	else 
-	   if (pix_cnt == 0)
+	   if (pix_cnt_end)
            begin
                crcIn_Y <= 10'h000;
-               CRC0_Y  <= 10'h000;
-               CRC1_Y  <= 10'h000;
-               
                crcIn_C <= 10'h000;
-               CRC0_C  <= 10'h000;
-               CRC1_C  <= 10'h000;
            end
        else
+         if (pix_CRC)
            begin
                crcIn_Y <= crcOut_Y;
                crcIn_C <= crcOut_C;
-               
-               CRC0_Y  <= {~crcOut_Y[8] , crcOut_Y[8 :0]};
-               CRC1_Y  <= {~crcOut_Y[17], crcOut_Y[17:9]};
-                 
-               CRC0_C  <= {~crcOut_C[8] , crcOut_C[8 :0]};
-               CRC1_C  <= {~crcOut_C[17], crcOut_C[17:9]};
-       end
+               CRC1_Y  <= {~crcOut_Y[17], crcOut_Y[17:9]};  
+               CRC1_C  <= {~crcOut_C[17], crcOut_C[17:9]};             
+           end
     end
+
+assign CRC0_Y  = {~crcOut_Y[8] , crcOut_Y[8 :0]};
+assign CRC0_C  = {~crcOut_C[8] , crcOut_C[8 :0]};
 //************* end CRC CODE *************
 
 reg  [ 9 : 0] pdata_Y, pdata_C; 
 //  WE FORM CURRENT DATA DEPENDING ON THE CURRENT PIXEL NUMBER
 //-----------------------------------------------  pdata 
-always @(posedge i_CLK_74m25 or posedge i_RST) 
+always @(posedge i_CLK_74m25 or negedge i_RST_N) 
 begin 
-	if (i_RST)
+	if (i_RST_N == 0)
 	begin
 		pdata_Y <= 0;
 		pdata_C <= 0;  
@@ -440,15 +429,15 @@ begin
       end
     else if (line_LN0)
       begin 
-        //          not b8        , L6-L0          , fix, fix 
-        pdata_Y <= {~LINE_CNT_o[6], LINE_CNT_o[6:0],1'b0,1'b0};
-        pdata_C <= {~LINE_CNT_o[6], LINE_CNT_o[6:0],1'b0,1'b0};
+        //          not b8            , L6-L0              , fix, fix 
+        pdata_Y <= {~line_cnt_st274[6], line_cnt_st274[6:0],1'b0,1'b0};
+        pdata_C <= {~line_cnt_st274[6], line_cnt_st274[6:0],1'b0,1'b0};
       end
     else if (line_LN1) 
       begin
-        //          not b8,fix ,fix ,fix ,  L10-L7        ,fix , fix 
-        pdata_Y <= {1'b1  ,1'b0,1'b0,1'b0,LINE_CNT_o[10:7],1'b0, 1'b0};
-        pdata_C <= {1'b1  ,1'b0,1'b0,1'b0,LINE_CNT_o[10:7],1'b0, 1'b0}; 
+        //          not b8,fix ,fix ,fix ,  L10-L7            ,fix , fix 
+        pdata_Y <= {1'b1  ,1'b0,1'b0,1'b0,line_cnt_st274[10:7],1'b0, 1'b0};
+        pdata_C <= {1'b1  ,1'b0,1'b0,1'b0,line_cnt_st274[10:7],1'b0, 1'b0}; 
       end
     else if (line_CRC0)
       begin
@@ -462,16 +451,16 @@ begin
       end	            	 	 		
     else if (line_BLANK) 
       begin  
-        // not sure about byte values
         pdata_Y <= 10'h040;
         pdata_C <= 10'h200;	
       end
     else
-      begin  
+      begin
         pdata_Y <= i_data_Y;
         pdata_C <= i_data_C;
       end						
 end 
+
 
 //OUTPUTS
 assign PIX_CNT_o  = pix_cnt; 
